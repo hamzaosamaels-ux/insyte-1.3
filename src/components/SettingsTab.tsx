@@ -63,7 +63,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                 className={`w-full flex items-center justify-between p-3.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
                   language === "en"
                     ? "bg-indigo-50/50 dark:bg-indigo-950/25 border-indigo-300 text-indigo-600 dark:text-indigo-400"
-                    : "bg-slate-50/50 dark:bg-[#1c1836] border-slate-100 dark:border-[#2b244c] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#201b3a]"
+                    : "bg-slate-50/50 dark:bg-[#1c1836] border-slate-100 dark:border-[#2b244c] text-slate-700 dark:text-slate-300 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 hover:text-indigo-600 dark:hover:text-indigo-400"
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -80,7 +80,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                 className={`w-full flex items-center justify-between p-3.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
                   language === "ar"
                     ? "bg-indigo-50/50 dark:bg-indigo-950/25 border-indigo-300 text-indigo-600 dark:text-indigo-400"
-                    : "bg-slate-50/50 dark:bg-[#1c1836] border-slate-100 dark:border-[#2b244c] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#201b3a]"
+                    : "bg-slate-50/50 dark:bg-[#1c1836] border-slate-100 dark:border-[#2b244c] text-slate-700 dark:text-slate-300 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 hover:text-indigo-600 dark:hover:text-indigo-400"
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -123,7 +123,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                 className={`w-full flex items-center justify-between p-3.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
                   theme === "light"
                     ? "bg-indigo-50/50 dark:bg-indigo-950/25 border-indigo-300 text-indigo-600 dark:text-indigo-400"
-                    : "bg-slate-50/50 dark:bg-[#1c1836] border-slate-100 dark:border-[#2b244c] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#201b3a]"
+                    : "bg-slate-50/50 dark:bg-[#1c1836] border-slate-100 dark:border-[#2b244c] text-slate-700 dark:text-slate-300 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 hover:text-indigo-600 dark:hover:text-indigo-400"
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -140,7 +140,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                 className={`w-full flex items-center justify-between p-3.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
                   theme === "dark"
                     ? "bg-indigo-50/50 dark:bg-indigo-950/25 border-indigo-300 text-indigo-600 dark:text-indigo-400"
-                    : "bg-slate-50/50 dark:bg-[#1c1836] border-slate-100 dark:border-[#2b244c] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#201b3a]"
+                    : "bg-slate-50/50 dark:bg-[#1c1836] border-slate-100 dark:border-[#2b244c] text-slate-700 dark:text-slate-300 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 hover:text-indigo-600 dark:hover:text-indigo-400"
                 }`}
               >
                 <div className="flex items-center gap-2">

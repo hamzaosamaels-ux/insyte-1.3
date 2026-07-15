@@ -20,6 +20,7 @@ export interface ClassCommunity {
   teacherId: string;
   teacherName: string;
   studentIds: string[];
+  color?: string; // Tailwind class color base, e.g. 'emerald', 'violet', 'amber'
 }
 
 export interface Lesson {
@@ -28,6 +29,10 @@ export interface Lesson {
   title: string;
   content: string; // Markdown supported
   publishedAt: string;
+  videoUrl?: string;       // Embeddable YouTube or direct video link
+  pptUrl?: string;         // Presentation link (Google Slides embed, Office Live embed, or general)
+  webUrl?: string;         // General external web link
+  webUrlTitle?: string;    // Label for the web link
 }
 
 export type TaskType = 'text' | 'dragdrop';

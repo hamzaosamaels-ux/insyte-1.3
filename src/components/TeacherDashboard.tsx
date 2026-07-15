@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Plus, BookOpen, Award, Megaphone, Calendar, Users, 
   CheckSquare, LogOut, CheckCircle2, ChevronRight, Info,
-  Trash2, Send, Clock, Sparkles, Settings
+  Trash2, Send, Clock, Sparkles, Settings, Edit, Check, Library, Video, Presentation, Globe
 } from "lucide-react";
 import { 
   UserProfile, ClassCommunity, Lesson, TaskItem, 
@@ -12,6 +12,7 @@ import {
 import { Language, Theme, getTranslation } from "../translations";
 import { InteractiveCalendar } from "./InteractiveCalendar";
 import { SettingsTab } from "./SettingsTab";
+import { getClassColors } from "../utils/colorHelper";
 
 interface TeacherDashboardProps {
   currentTeacher: UserProfile;
@@ -23,8 +24,10 @@ interface TeacherDashboardProps {
   submissions: TaskSubmission[];
   allStudents: UserProfile[];
   onLogOut: () => void;
-  onCreateClass: (name: string, code: string, description: string) => void;
+  onCreateClass: (name: string, code: string, description: string, color?: string) => void;
   onCreateLesson: (lesson: Omit<Lesson, "id" | "publishedAt">) => void;
+  onUpdateLesson: (id: string, updatedFields: Partial<Lesson>) => void;
+  onDeleteLesson: (id: string) => void;
   onCreateTask: (task: Omit<TaskItem, "id">) => void;
   onAddAnnouncement: (ann: Omit<Announcement, "id" | "publishedAt">) => void;
   onAddEvent: (evt: Omit<ClassEvent, "id">) => void;
@@ -47,6 +50,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   onLogOut,
   onCreateClass,
   onCreateLesson,
+  onUpdateLesson,
+  onDeleteLesson,
   onCreateTask,
   onAddAnnouncement,
   onAddEvent,
@@ -58,19 +63,58 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 }) => {
   const t = getTranslation(language);
 
+  // Parser function to split "Class 2B - German" into grade ("Class 2B") and subject ("German")
+  const getGradeAndSubject = (name: string) => {
+    if (name.includes(" - ")) {
+      const parts = name.split(" - ");
+      return { grade: parts[0].trim(), subject: parts[1].trim() };
+    }
+    return { grade: name.trim(), subject: "General" };
+  };
+
   // Selection States
   const [activeClass, setActiveClass] = useState<ClassCommunity | null>(classes[0] || null);
   const [activeSection, setActiveSection] = useState<"lobby" | "lessons" | "tasks" | "grade" | "events" | "announcements" | "calendar" | "settings">("lobby");
 
+  useEffect(() => {
+    if (classes.length > 0) {
+      if (!activeClass || !classes.some(c => c.id === activeClass.id)) {
+        setActiveClass(classes[0]);
+      }
+    } else {
+      setActiveClass(null);
+    }
+  }, [classes]);
+
+  const classesByGrade: Record<string, ClassCommunity[]> = {};
+  classes.forEach((cl) => {
+    const { grade } = getGradeAndSubject(cl.name);
+    if (!classesByGrade[grade]) {
+      classesByGrade[grade] = [];
+    }
+    classesByGrade[grade].push(cl);
+  });
+
+  const grades = Object.keys(classesByGrade);
+  const activeGrade = activeClass ? getGradeAndSubject(activeClass.name).grade : (grades[0] || "");
+  const activeGradeClasses = classesByGrade[activeGrade] || [];
+
   // Creation Forms State toggles
   const [showCreateClass, setShowCreateClass] = useState(false);
-  const [newClassName, setNewClassName] = useState("");
+  const [newClassGrade, setNewClassGrade] = useState("Class 2B");
+  const [newClassSubject, setNewClassSubject] = useState("");
   const [newClassCode, setNewClassCode] = useState("");
   const [newClassDesc, setNewClassDesc] = useState("");
+  const [newClassColor, setNewClassColor] = useState("indigo");
 
   // Create Lesson states
   const [lessonTitle, setLessonTitle] = useState("");
   const [lessonContent, setLessonContent] = useState("");
+  const [lessonVideoUrl, setLessonVideoUrl] = useState("");
+  const [lessonPptUrl, setLessonPptUrl] = useState("");
+  const [lessonWebUrl, setLessonWebUrl] = useState("");
+  const [lessonWebUrlTitle, setLessonWebUrlTitle] = useState("");
+  const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
 
   // Create Task states
   const [taskTitle, setTaskTitle] = useState("");
@@ -106,25 +150,67 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   // Submit Handlers
   const handleCreateClass = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newClassName.trim() || !newClassCode.trim()) return;
-    onCreateClass(newClassName.trim(), newClassCode.trim().toUpperCase(), newClassDesc.trim());
-    setNewClassName("");
+    if (!newClassGrade.trim() || !newClassSubject.trim() || !newClassCode.trim()) return;
+    const finalClassName = `${newClassGrade.trim()} - ${newClassSubject.trim()}`;
+    onCreateClass(finalClassName, newClassCode.trim().toUpperCase(), newClassDesc.trim(), newClassColor);
+    setNewClassGrade("Class 2B");
+    setNewClassSubject("");
     setNewClassCode("");
     setNewClassDesc("");
+    setNewClassColor("indigo");
     setShowCreateClass(false);
   };
 
   const handleCreateLesson = (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeClass || !lessonTitle.trim() || !lessonContent.trim()) return;
-    onCreateLesson({
+
+    const lessonData = {
       classId: activeClass.id,
       title: lessonTitle.trim(),
-      content: lessonContent.trim()
-    });
+      content: lessonContent.trim(),
+      videoUrl: lessonVideoUrl.trim() || undefined,
+      pptUrl: lessonPptUrl.trim() || undefined,
+      webUrl: lessonWebUrl.trim() || undefined,
+      webUrlTitle: (lessonWebUrl.trim() && lessonWebUrlTitle.trim()) ? lessonWebUrlTitle.trim() : undefined
+    };
+
+    if (editingLessonId) {
+      onUpdateLesson(editingLessonId, lessonData);
+      showNotification("Lesson updated successfully!");
+    } else {
+      onCreateLesson(lessonData);
+      showNotification("New lesson published successfully!");
+    }
+
     setLessonTitle("");
     setLessonContent("");
-    showNotification("New lesson published successfully!");
+    setLessonVideoUrl("");
+    setLessonPptUrl("");
+    setLessonWebUrl("");
+    setLessonWebUrlTitle("");
+    setEditingLessonId(null);
+  };
+
+  const handleStartEditLesson = (lesson: Lesson) => {
+    setLessonTitle(lesson.title);
+    setLessonContent(lesson.content);
+    setLessonVideoUrl(lesson.videoUrl || "");
+    setLessonPptUrl(lesson.pptUrl || "");
+    setLessonWebUrl(lesson.webUrl || "");
+    setLessonWebUrlTitle(lesson.webUrlTitle || "");
+    setEditingLessonId(lesson.id);
+    setActiveSection("lessons");
+  };
+
+  const handleCancelEditLesson = () => {
+    setLessonTitle("");
+    setLessonContent("");
+    setLessonVideoUrl("");
+    setLessonPptUrl("");
+    setLessonWebUrl("");
+    setLessonWebUrlTitle("");
+    setEditingLessonId(null);
   };
 
   const handleCreateTask = (e: React.FormEvent) => {
@@ -242,26 +328,68 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           </div>
         </div>
 
-        {/* Selected Classroom Picker */}
+        {/* Selected Classroom Picker (Grade & Subject Subcategories) */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#1c1836]/60 p-1.5 rounded-xl border border-slate-200 dark:border-[#2d2553]/50">
-            {classes.map((cl) => (
-              <button
-                key={cl.id}
-                onClick={() => {
-                  setActiveClass(cl);
-                  setSelectedSub(null);
-                }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all ${
-                  activeClass?.id === cl.id 
-                    ? "bg-white dark:bg-[#1c1836] text-violet-700 dark:text-violet-400 shadow-sm border border-slate-200/50 dark:border-indigo-500/20" 
-                    : "text-slate-600 dark:text-slate-350 hover:text-violet-700 dark:hover:text-violet-400"
-                }`}
-              >
-                {cl.code}
-              </button>
-            ))}
-          </div>
+          {grades.length > 0 && (
+            <div className="flex items-center gap-2 bg-slate-100 dark:bg-[#1a1532]/60 p-1.5 rounded-xl border border-slate-200 dark:border-[#2d2553]/50">
+              {/* Grade Selector (e.g. Class 2B) */}
+              <div className="flex items-center gap-1">
+                {grades.map((grade) => {
+                  const isActive = activeGrade === grade;
+                  return (
+                    <button
+                      key={grade}
+                      onClick={() => {
+                        const firstCl = classesByGrade[grade]?.[0];
+                        if (firstCl) {
+                          setActiveClass(firstCl);
+                          setSelectedSub(null);
+                        }
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        isActive
+                          ? "bg-violet-600 text-white shadow-xs"
+                          : "text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-[#251e44]/50"
+                      }`}
+                    >
+                      {grade}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Subtle Divider */}
+              {activeGradeClasses.length > 0 && (
+                <div className="h-5 w-px bg-slate-200 dark:bg-[#2e265c]" />
+              )}
+
+              {/* Subject Subcategory Selector under active grade */}
+              <div className="flex items-center gap-1">
+                {activeGradeClasses.map((cl) => {
+                  const { subject } = getGradeAndSubject(cl.name);
+                  const isSelected = activeClass?.id === cl.id;
+                  const clColors = getClassColors(cl.color);
+                  return (
+                    <button
+                      key={cl.id}
+                      onClick={() => {
+                        setActiveClass(cl);
+                        setSelectedSub(null);
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+                        isSelected
+                          ? `bg-white dark:bg-[#1c1836] ${clColors.text} shadow-xs border ${clColors.border}`
+                          : `text-slate-600 dark:text-slate-350 ${clColors.textHover}`
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${clColors.bgSolid} ${isSelected ? "animate-pulse" : "opacity-50"}`} />
+                      {subject}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <button
             onClick={() => setShowCreateClass(true)}
@@ -309,7 +437,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               className={`w-full flex items-center justify-start gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
                 activeSection === "lobby" 
                   ? "bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-400 border border-violet-100/55 dark:border-violet-900/50" 
-                  : "text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-750 hover:text-slate-900 dark:hover:text-slate-100"
+                  : "text-slate-600 dark:text-slate-350 hover:bg-violet-50/50 dark:hover:bg-violet-950/20 hover:text-violet-600 dark:hover:text-violet-300"
               }`}
             >
               <Users className="h-4 w-4" />
@@ -321,7 +449,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               className={`w-full flex items-center justify-start gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
                 activeSection === "lessons" 
                   ? "bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-400 border border-violet-100/55 dark:border-violet-900/50" 
-                  : "text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-750 hover:text-slate-900 dark:hover:text-slate-100"
+                  : "text-slate-600 dark:text-slate-350 hover:bg-violet-50/50 dark:hover:bg-violet-950/20 hover:text-violet-600 dark:hover:text-violet-300"
               }`}
             >
               <BookOpen className="h-4 w-4" />
@@ -333,7 +461,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               className={`w-full flex items-center justify-start gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
                 activeSection === "tasks" 
                   ? "bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-400 border border-violet-100/55 dark:border-violet-900/50" 
-                  : "text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-750 hover:text-slate-900 dark:hover:text-slate-100"
+                  : "text-slate-600 dark:text-slate-350 hover:bg-violet-50/50 dark:hover:bg-violet-950/20 hover:text-violet-600 dark:hover:text-violet-300"
               }`}
             >
               <Award className="h-4 w-4" />
@@ -345,7 +473,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               className={`w-full flex items-center justify-start gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all relative ${
                 activeSection === "grade" 
                   ? "bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-400 border border-violet-100/55 dark:border-violet-900/50" 
-                  : "text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-750 hover:text-slate-900 dark:hover:text-slate-100"
+                  : "text-slate-600 dark:text-slate-350 hover:bg-violet-50/50 dark:hover:bg-violet-950/20 hover:text-violet-600 dark:hover:text-violet-300"
               }`}
             >
               <CheckSquare className="h-4 w-4" />
@@ -362,7 +490,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               className={`w-full flex items-center justify-start gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
                 activeSection === "events" 
                   ? "bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-400 border border-violet-100/55 dark:border-violet-900/50" 
-                  : "text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-750 hover:text-slate-900 dark:hover:text-slate-100"
+                  : "text-slate-600 dark:text-slate-350 hover:bg-violet-50/50 dark:hover:bg-violet-950/20 hover:text-violet-600 dark:hover:text-violet-300"
               }`}
             >
               <Calendar className="h-4 w-4" />
@@ -374,7 +502,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               className={`w-full flex items-center justify-start gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
                 activeSection === "announcements" 
                   ? "bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-400 border border-violet-100/55 dark:border-violet-900/50" 
-                  : "text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-750 hover:text-slate-900 dark:hover:text-slate-100"
+                  : "text-slate-600 dark:text-slate-350 hover:bg-violet-50/50 dark:hover:bg-violet-950/20 hover:text-violet-600 dark:hover:text-violet-300"
               }`}
             >
               <Megaphone className="h-4 w-4" />
@@ -386,7 +514,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               className={`w-full flex items-center justify-start gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
                 activeSection === "calendar" 
                   ? "bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-400 border border-violet-100/55 dark:border-violet-900/50" 
-                  : "text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-750 hover:text-slate-900 dark:hover:text-slate-100"
+                  : "text-slate-600 dark:text-slate-350 hover:bg-violet-50/50 dark:hover:bg-violet-950/20 hover:text-violet-600 dark:hover:text-violet-300"
               }`}
             >
               <Calendar className="h-4 w-4" />
@@ -398,7 +526,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               className={`w-full flex items-center justify-start gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
                 activeSection === "settings" 
                   ? "bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-400 border border-violet-100/55 dark:border-violet-900/50" 
-                  : "text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-750 hover:text-slate-900 dark:hover:text-slate-100"
+                  : "text-slate-600 dark:text-slate-350 hover:bg-violet-50/50 dark:hover:bg-violet-950/20 hover:text-violet-600 dark:hover:text-violet-300"
               }`}
             >
               <Settings className="h-4 w-4" />
@@ -442,46 +570,212 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               </div>
             )}
 
-            {/* CREATE LESSON VIEW */}
+            {/* CREATE & MANAGE LESSONS VIEW */}
             {activeSection === "lessons" && (
-              <div className="max-w-3xl bg-white dark:bg-[#130f26] border border-slate-200 dark:border-[#241c49]/80 p-6 rounded-2xl shadow-xs">
-                <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 font-display mb-1 flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-violet-600 dark:text-violet-450" /> Publish Class Lesson
-                </h2>
-                <p className="text-slate-400 text-xs mb-6">Write comprehensive lecture guides. Markdown formatting is supported.</p>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Form column (Left) */}
+                <div className="lg:col-span-7 bg-white dark:bg-[#130f26] border border-slate-200 dark:border-[#241c49]/80 p-6 rounded-2xl shadow-xs h-fit">
+                  <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 font-display mb-1 flex items-center gap-2">
+                    <BookOpen className="h-5 w-5 text-violet-600 dark:text-violet-450" /> 
+                    {editingLessonId ? "Edit Lesson Guide" : "Publish Class Lesson"}
+                  </h2>
+                  <p className="text-slate-400 text-xs mb-6">
+                    {editingLessonId ? "Modify lesson details, markdown, and embedded materials." : "Write comprehensive lecture guides. Markdown formatting is supported."}
+                  </p>
 
-                <form onSubmit={handleCreateLesson} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Lesson Title</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g., 3. Advanced DOM Selectors"
-                      value={lessonTitle}
-                      onChange={(e) => setLessonTitle(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-[#1c1836] border border-slate-200 dark:border-[#2b244c] focus:border-violet-500 rounded-xl focus:outline-hidden text-xs text-slate-700 dark:text-slate-200"
-                    />
+                  <form onSubmit={handleCreateLesson} className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Lesson Title</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g., 3. Advanced DOM Selectors"
+                        value={lessonTitle}
+                        onChange={(e) => setLessonTitle(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-[#1c1836] border border-slate-200 dark:border-[#2b244c] focus:border-violet-500 rounded-xl focus:outline-hidden text-xs text-slate-700 dark:text-slate-200"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Lesson Content</label>
+                      <textarea
+                        required
+                        rows={8}
+                        placeholder="Enter the lesson guide text here..."
+                        value={lessonContent}
+                        onChange={(e) => setLessonContent(e.target.value)}
+                        className="w-full p-4 bg-slate-50 dark:bg-[#1c1836] border border-slate-200 dark:border-[#2b244c] focus:border-violet-500 rounded-xl focus:outline-hidden text-xs text-slate-700 dark:text-slate-200 leading-relaxed font-mono"
+                      />
+                    </div>
+
+                    {/* MULTIMEDIA UPLOAD OPTIONS */}
+                    <div className="p-4 bg-slate-50 dark:bg-[#181432] rounded-xl border border-slate-200 dark:border-[#251e44] space-y-3">
+                      <span className="text-[10px] font-bold text-violet-600 dark:text-violet-450 uppercase tracking-wider block">
+                        Interactive Media & Web Link Embeds
+                      </span>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-semibold text-slate-400 mb-1">YouTube Video Embed URL</label>
+                          <input
+                            type="url"
+                            placeholder="e.g., https://www.youtube.com/embed/..."
+                            value={lessonVideoUrl}
+                            onChange={(e) => setLessonVideoUrl(e.target.value)}
+                            className="w-full px-3 py-1.5 bg-white dark:bg-[#1c1836] border border-slate-200 dark:border-[#2b244c] focus:border-violet-500 rounded-lg focus:outline-hidden text-[11px] text-slate-700 dark:text-slate-200"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-semibold text-slate-400 mb-1">PowerPoint/Slides Embed URL</label>
+                          <input
+                            type="url"
+                            placeholder="e.g., https://docs.google.com/presentation/..."
+                            value={lessonPptUrl}
+                            onChange={(e) => setLessonPptUrl(e.target.value)}
+                            className="w-full px-3 py-1.5 bg-white dark:bg-[#1c1836] border border-slate-200 dark:border-[#2b244c] focus:border-violet-500 rounded-lg focus:outline-hidden text-[11px] text-slate-700 dark:text-slate-200"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-semibold text-slate-400 mb-1">External Web Link URL</label>
+                          <input
+                            type="url"
+                            placeholder="e.g., https://eyes.nasa.gov"
+                            value={lessonWebUrl}
+                            onChange={(e) => setLessonWebUrl(e.target.value)}
+                            className="w-full px-3 py-1.5 bg-white dark:bg-[#1c1836] border border-slate-200 dark:border-[#2b244c] focus:border-violet-500 rounded-lg focus:outline-hidden text-[11px] text-slate-700 dark:text-slate-200"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-semibold text-slate-400 mb-1">Web Link Friendly Label</label>
+                          <input
+                            type="text"
+                            placeholder="e.g., NASA Interactive Map"
+                            value={lessonWebUrlTitle}
+                            onChange={(e) => setLessonWebUrlTitle(e.target.value)}
+                            className="w-full px-3 py-1.5 bg-white dark:bg-[#1c1836] border border-slate-200 dark:border-[#2b244c] focus:border-violet-500 rounded-lg focus:outline-hidden text-[11px] text-slate-700 dark:text-slate-200"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 pt-2">
+                      <button
+                        type="submit"
+                        className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                      >
+                        {editingLessonId ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                        {editingLessonId ? "Save Changes" : "Publish Lesson"}
+                      </button>
+
+                      {editingLessonId && (
+                        <button
+                          type="button"
+                          onClick={handleCancelEditLesson}
+                          className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-[#201b44] dark:hover:bg-[#2c265c] text-slate-600 dark:text-slate-300 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                        >
+                          Cancel Edit
+                        </button>
+                      )}
+                    </div>
+                  </form>
+                </div>
+
+                {/* Lessons list column (Right) */}
+                <div className="lg:col-span-5 flex flex-col gap-4">
+                  <div className="bg-white dark:bg-[#130f26] border border-slate-200 dark:border-[#241c49]/80 p-5 rounded-2xl shadow-xs">
+                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 font-display mb-1 flex items-center gap-2">
+                      <Library className="h-4.5 w-4.5 text-violet-500" /> Currently Published ({classLessons.length})
+                    </h3>
+                    <p className="text-slate-400 text-[11px] mb-4">View, edit, and delete existing lesson study guides for {activeClass.name}.</p>
+
+                    {classLessons.length === 0 ? (
+                      <div className="py-12 text-center border-2 border-dashed border-slate-200 dark:border-[#2c2452]/40 rounded-xl">
+                        <BookOpen className="h-8 w-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                        <p className="text-xs text-slate-400 font-semibold">No published lessons yet for this class.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
+                        {classLessons.map((les) => (
+                          <div 
+                            key={les.id}
+                            className={`p-4 rounded-xl border transition-all ${
+                              editingLessonId === les.id
+                                ? "bg-violet-50/50 dark:bg-violet-950/20 border-violet-500/50 dark:border-violet-500/40"
+                                : "bg-slate-50 hover:bg-slate-100/70 dark:bg-[#1a1538]/50 dark:hover:bg-[#211b47]/70 border-slate-200/60 dark:border-[#2c2452]/40"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <h4 className="font-bold text-xs text-slate-800 dark:text-slate-100 leading-tight">
+                                  {les.title}
+                                </h4>
+                                <p className="text-[9px] text-slate-400 mt-1 font-semibold">
+                                  Published {new Date(les.publishedAt).toLocaleDateString()}
+                                </p>
+                              </div>
+
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  onClick={() => handleStartEditLesson(les)}
+                                  className="p-1.5 text-slate-500 hover:text-violet-600 hover:bg-violet-50 dark:text-slate-400 dark:hover:text-violet-450 dark:hover:bg-violet-950/40 rounded-lg transition-colors cursor-pointer"
+                                  title="Edit Lesson"
+                                >
+                                  <Edit className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (confirm("Are you sure you want to delete this lesson? This action cannot be undone.")) {
+                                      onDeleteLesson(les.id);
+                                      showNotification("Lesson deleted successfully!");
+                                      if (editingLessonId === les.id) {
+                                        handleCancelEditLesson();
+                                      }
+                                    }
+                                  }}
+                                  className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:text-slate-400 dark:hover:text-rose-400 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer"
+                                  title="Delete Lesson"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* EXCERPT */}
+                            <p className="text-slate-400 dark:text-slate-350 text-[10px] mt-2 line-clamp-2 leading-relaxed">
+                              {les.content.replace(/[#*`_-]/g, "")}
+                            </p>
+
+                            {/* ATTACHMENTS BADGES */}
+                            {(les.videoUrl || les.pptUrl || les.webUrl) && (
+                              <div className="flex flex-wrap gap-1.5 mt-3 pt-2.5 border-t border-slate-200/40 dark:border-[#2c2452]/30">
+                                {les.videoUrl && (
+                                  <span className="flex items-center gap-1 bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-400 px-1.5 py-0.5 rounded-md text-[9px] font-bold">
+                                    <Video className="h-2.5 w-2.5" /> Video
+                                  </span>
+                                )}
+                                {les.pptUrl && (
+                                  <span className="flex items-center gap-1 bg-amber-100 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded-md text-[9px] font-bold">
+                                    <Presentation className="h-2.5 w-2.5" /> Slides
+                                  </span>
+                                )}
+                                {les.webUrl && (
+                                  <span className="flex items-center gap-1 bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 px-1.5 py-0.5 rounded-md text-[9px] font-bold">
+                                    <Globe className="h-2.5 w-2.5" /> {les.webUrlTitle || "Web Link"}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Lesson Content</label>
-                    <textarea
-                      required
-                      rows={10}
-                      placeholder="Enter the lesson guide text here..."
-                      value={lessonContent}
-                      onChange={(e) => setLessonContent(e.target.value)}
-                      className="w-full p-4 bg-slate-50 dark:bg-[#1c1836] border border-slate-200 dark:border-[#2b244c] focus:border-violet-500 rounded-xl focus:outline-hidden text-xs text-slate-700 dark:text-slate-200 leading-relaxed font-mono"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs rounded-xl shadow-md shadow-violet-100 dark:shadow-none transition-all cursor-pointer"
-                  >
-                    Publish Lesson
-                  </button>
-                </form>
+                </div>
               </div>
             )}
 
@@ -822,6 +1116,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             {/* CALENDAR VIEW */}
             {activeSection === "calendar" && (
               <InteractiveCalendar 
+                classes={classes}
                 tasks={classTasks}
                 events={classEvents}
                 submissions={submissions}
@@ -845,8 +1140,12 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
         </div>
       ) : (
-        <div className="flex-grow flex items-center justify-center p-6 text-center">
-          <p className="text-slate-400 text-xs">Create or select a class from the navigation bar to begin coaching.</p>
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50 dark:bg-[#0b081a] min-h-[50vh]">
+          <div className="p-4 bg-violet-100 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400 rounded-2xl mb-4 animate-pulse">
+            <Users className="h-8 w-8" />
+          </div>
+          <p className="text-slate-700 dark:text-slate-300 font-bold text-sm">No Active Classroom Selected</p>
+          <p className="text-slate-400 text-xs mt-1 max-w-xs">Create or select a classroom channel from the top navigation bar to begin coaching.</p>
         </div>
       )}
 
@@ -858,16 +1157,30 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             <p className="text-slate-400 text-[11px] mb-4">Establish a new classroom community, peer chats, calendars, and assignments.</p>
 
             <form onSubmit={handleCreateClass} className="space-y-4">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Class Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. History of Space Flight"
-                  value={newClassName}
-                  onChange={(e) => setNewClassName(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-[#1c1836] border border-slate-200 dark:border-[#2b244c] focus:border-violet-500 rounded-xl focus:outline-hidden text-xs dark:text-slate-200"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Class/Grade</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Class 2B"
+                    value={newClassGrade}
+                    onChange={(e) => setNewClassGrade(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-[#1c1836] border border-slate-200 dark:border-[#2b244c] focus:border-violet-500 rounded-xl focus:outline-hidden text-xs dark:text-slate-200"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Subject</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. German"
+                    value={newClassSubject}
+                    onChange={(e) => setNewClassSubject(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-[#1c1836] border border-slate-200 dark:border-[#2b244c] focus:border-violet-500 rounded-xl focus:outline-hidden text-xs dark:text-slate-200"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -882,6 +1195,31 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                     onChange={(e) => setNewClassCode(e.target.value)}
                     className="w-full px-3 py-2 bg-slate-50 dark:bg-[#1c1836] border border-slate-200 dark:border-[#2b244c] focus:border-violet-500 rounded-xl focus:outline-hidden text-xs dark:text-slate-200"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Theme Color</label>
+                  <div className="flex items-center gap-1.5 h-[34px]">
+                    {[
+                      { key: "emerald", bg: "bg-emerald-500", ring: "ring-emerald-400" },
+                      { key: "violet", bg: "bg-violet-500", ring: "ring-violet-400" },
+                      { key: "amber", bg: "bg-amber-500", ring: "ring-amber-400" },
+                      { key: "blue", bg: "bg-blue-500", ring: "ring-blue-400" },
+                      { key: "indigo", bg: "bg-indigo-500", ring: "ring-indigo-400" }
+                    ].map((item) => (
+                      <button
+                        key={item.key}
+                        type="button"
+                        onClick={() => setNewClassColor(item.key)}
+                        className={`w-6 h-6 rounded-full ${item.bg} transition-all cursor-pointer ${
+                          newClassColor === item.key 
+                            ? `ring-2 ring-offset-2 ring-offset-white dark:ring-offset-[#130f26] ${item.ring} scale-110` 
+                            : "opacity-75 hover:opacity-100"
+                        }`}
+                        title={item.key}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
 

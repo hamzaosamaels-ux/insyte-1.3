@@ -188,7 +188,7 @@ export default function App() {
   };
 
   // 1. Create Classroom Community
-  const handleCreateClass = (name: string, code: string, description: string) => {
+  const handleCreateClass = (name: string, code: string, description: string, color?: string) => {
     if (!teacher) return;
     fetch("/api/classes", {
       method: "POST",
@@ -198,7 +198,8 @@ export default function App() {
         code,
         description,
         teacherId: teacher.id,
-        teacherName: teacher.name
+        teacherName: teacher.name,
+        color: color || "indigo"
       })
     })
       .then((res) => res.json())
@@ -221,6 +222,30 @@ export default function App() {
         setLessons((prev) => [newLesson, ...prev]);
       })
       .catch((err) => console.error("Error publishing lesson:", err));
+  };
+
+  const handleUpdateLesson = (id: string, updatedFields: Partial<Lesson>) => {
+    fetch(`/api/lessons/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updatedFields)
+    })
+      .then((res) => res.json())
+      .then((updatedLesson) => {
+        setLessons((prev) => prev.map((l) => (l.id === id ? updatedLesson : l)));
+      })
+      .catch((err) => console.error("Error updating lesson:", err));
+  };
+
+  const handleDeleteLesson = (id: string) => {
+    fetch(`/api/lessons/${id}`, {
+      method: "DELETE"
+    })
+      .then((res) => res.json())
+      .then(() => {
+        setLessons((prev) => prev.filter((l) => l.id !== id));
+      })
+      .catch((err) => console.error("Error deleting lesson:", err));
   };
 
   // 3. Post Homework Assignment
@@ -363,6 +388,8 @@ export default function App() {
       onLogOut={handleLogOut}
       onCreateClass={handleCreateClass}
       onCreateLesson={handleCreateLesson}
+      onUpdateLesson={handleUpdateLesson}
+      onDeleteLesson={handleDeleteLesson}
       onCreateTask={handleCreateTask}
       onAddAnnouncement={handleAddAnnouncement}
       onAddEvent={handleAddEvent}

@@ -109,7 +109,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
               </h3>
               <button
                 onClick={() => setRoleMode("choose")}
-                className="text-xs text-slate-400 hover:text-white transition-colors"
+                className="text-xs text-slate-400 hover:text-indigo-400 transition-colors"
               >
                 ← Back
               </button>
@@ -167,7 +167,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
               </h3>
               <button
                 onClick={() => setRoleMode("choose")}
-                className="text-xs text-slate-400 hover:text-white transition-colors"
+                className="text-xs text-slate-400 hover:text-indigo-400 transition-colors"
               >
                 ← Back
               </button>
@@ -211,7 +211,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
               </h3>
               <button
                 onClick={() => setRoleMode("student")}
-                className="text-xs text-slate-400 hover:text-white transition-colors"
+                className="text-xs text-slate-400 hover:text-indigo-400 transition-colors"
               >
                 ← Back
               </button>

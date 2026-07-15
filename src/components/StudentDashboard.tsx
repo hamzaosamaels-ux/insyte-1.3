@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { 
   BookOpen, Award, MessageSquare, Calendar, Sparkles, Send, 
   ChevronRight, Trophy, Bell, Clock, LogOut, CheckCircle2,
-  List, ShieldAlert, ArrowLeft, RefreshCw, Star, Info, Settings
+  List, ShieldAlert, ArrowLeft, RefreshCw, Star, Info, Settings,
+  Video, Presentation, Globe, ExternalLink, Search
 } from "lucide-react";
 import { 
   UserProfile, ClassCommunity, Lesson, TaskItem, 
@@ -12,6 +13,7 @@ import {
 import { Language, Theme, getTranslation } from "../translations";
 import { InteractiveCalendar } from "./InteractiveCalendar";
 import { SettingsTab } from "./SettingsTab";
+import { getClassColors } from "../utils/colorHelper";
 
 interface StudentDashboardProps {
   currentStudent: UserProfile;
@@ -54,6 +56,16 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 }) => {
   const t = getTranslation(language);
 
+  const getYoutubeEmbedUrl = (url?: string) => {
+    if (!url) return "";
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    if (match && match[2].length === 11) {
+      return `https://www.youtube.com/embed/${match[2]}`;
+    }
+    return url;
+  };
+
   // Toast notifications state
   const [notification, setNotification] = useState<{ message: string; type: "success" | "info" } | null>(null);
 
@@ -67,11 +79,39 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
   // Navigation & View States
   const studentClasses = classes.filter(c => currentStudent.joinedClasses.includes(c.id));
   const [activeClass, setActiveClass] = useState<ClassCommunity | null>(studentClasses[0] || null);
+
+  const getGradeAndSubject = (name: string) => {
+    if (name.includes(" - ")) {
+      const parts = name.split(" - ");
+      return { grade: parts[0].trim(), subject: parts[1].trim() };
+    }
+    return { grade: name.trim(), subject: "General" };
+  };
+
+  const classesByGrade: Record<string, ClassCommunity[]> = {};
+  studentClasses.forEach(cl => {
+    const { grade } = getGradeAndSubject(cl.name);
+    if (!classesByGrade[grade]) {
+      classesByGrade[grade] = [];
+    }
+    classesByGrade[grade].push(cl);
+  });
+
+  const grades = Object.keys(classesByGrade);
+  const activeGrade = activeClass ? getGradeAndSubject(activeClass.name).grade : (grades[0] || "");
+  const activeGradeClasses = classesByGrade[activeGrade] || [];
+
+  const activeColors = getClassColors(activeClass?.color);
   const [activeTab, setActiveTab] = useState<"dashboard" | "lessons" | "tasks" | "chat" | "ai" | "calendar" | "settings">("dashboard");
 
   // Subview Details States
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [selectedTask, setSelectedTask] = useState<TaskItem | null>(null);
+
+  // Search query states
+  const [lessonSearch, setLessonSearch] = useState("");
+  const [taskSearch, setTaskSearch] = useState("");
+  const [announcementSearch, setAnnouncementSearch] = useState("");
 
   // Homework submission input state
   const [homeworkText, setHomeworkText] = useState("");
@@ -317,27 +357,35 @@ ${activeClass ? `- Current Subject: ${activeClass.name}` : ''}
           </div>
         </div>
 
-        {/* Selected Classroom Picker */}
-        <div className="flex items-center gap-2 bg-slate-100 dark:bg-[#1c1836]/60 p-1.5 rounded-xl border border-slate-200 dark:border-[#2d2553]/50">
-          {studentClasses.map((cl) => (
-            <button
-              key={cl.id}
-              onClick={() => {
-                setActiveClass(cl);
-                setSelectedLesson(null);
-                setSelectedTask(null);
-                handleResetDragDrop();
-              }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all ${
-                activeClass?.id === cl.id 
-                  ? "bg-white dark:bg-[#1c1836] text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200/50 dark:border-indigo-500/20" 
-                  : "text-slate-600 dark:text-slate-350 hover:text-indigo-600 dark:hover:text-indigo-400"
-              }`}
-            >
-              {cl.code}
-            </button>
-          ))}
-        </div>
+        {/* Classes Tabs (Grade Selector) */}
+        {grades.length > 0 && (
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#1c1836]/60 p-1 rounded-xl border border-slate-200 dark:border-[#2d2553]/50">
+            {grades.map((grade) => {
+              const isActive = activeGrade === grade;
+              return (
+                <button
+                  key={grade}
+                  onClick={() => {
+                    const firstCl = classesByGrade[grade]?.[0];
+                    if (firstCl) {
+                      setActiveClass(firstCl);
+                      setSelectedLesson(null);
+                      setSelectedTask(null);
+                      handleResetDragDrop();
+                    }
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    isActive
+                      ? "bg-indigo-600 text-white shadow-xs"
+                      : "text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-[#251e44]/50"
+                  }`}
+                >
+                  {grade}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Current User Profiler */}
         <div className="flex items-center gap-4">
@@ -375,8 +423,8 @@ ${activeClass ? `- Current Subject: ${activeClass.name}` : ''}
               onClick={() => { setActiveTab("dashboard"); setSelectedLesson(null); setSelectedTask(null); }}
               className={`w-full flex items-center justify-start gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
                 activeTab === "dashboard" 
-                  ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/50" 
-                  : "text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-750 hover:text-slate-900 dark:hover:text-slate-100"
+                  ? `${activeColors.bg} ${activeColors.text} border ${activeColors.border}` 
+                  : `text-slate-600 dark:text-slate-350 hover:${activeColors.bg} ${activeColors.textHover}`
               }`}
             >
               <Trophy className="h-4 w-4" />
@@ -387,8 +435,8 @@ ${activeClass ? `- Current Subject: ${activeClass.name}` : ''}
               onClick={() => { setActiveTab("lessons"); setSelectedLesson(null); setSelectedTask(null); }}
               className={`w-full flex items-center justify-start gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
                 activeTab === "lessons" 
-                  ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/50" 
-                  : "text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-750 hover:text-slate-900 dark:hover:text-slate-100"
+                  ? `${activeColors.bg} ${activeColors.text} border ${activeColors.border}` 
+                  : `text-slate-600 dark:text-slate-350 hover:${activeColors.bg} ${activeColors.textHover}`
               }`}
             >
               <BookOpen className="h-4 w-4" />
@@ -399,8 +447,8 @@ ${activeClass ? `- Current Subject: ${activeClass.name}` : ''}
               onClick={() => { setActiveTab("tasks"); setSelectedLesson(null); setSelectedTask(null); }}
               className={`w-full flex items-center justify-start gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
                 activeTab === "tasks" 
-                  ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/50" 
-                  : "text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-750 hover:text-slate-900 dark:hover:text-slate-100"
+                  ? `${activeColors.bg} ${activeColors.text} border ${activeColors.border}` 
+                  : `text-slate-600 dark:text-slate-350 hover:${activeColors.bg} ${activeColors.textHover}`
               }`}
             >
               <Award className="h-4 w-4" />
@@ -411,8 +459,8 @@ ${activeClass ? `- Current Subject: ${activeClass.name}` : ''}
               onClick={() => { setActiveTab("chat"); setSelectedLesson(null); setSelectedTask(null); }}
               className={`w-full flex items-center justify-start gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
                 activeTab === "chat" 
-                  ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/50" 
-                  : "text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-750 hover:text-slate-900 dark:hover:text-slate-100"
+                  ? `${activeColors.bg} ${activeColors.text} border ${activeColors.border}` 
+                  : `text-slate-600 dark:text-slate-350 hover:${activeColors.bg} ${activeColors.textHover}`
               }`}
             >
               <MessageSquare className="h-4 w-4" />
@@ -423,21 +471,21 @@ ${activeClass ? `- Current Subject: ${activeClass.name}` : ''}
               onClick={() => { setActiveTab("ai"); setSelectedLesson(null); setSelectedTask(null); }}
               className={`w-full flex items-center justify-start gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all relative ${
                 activeTab === "ai" 
-                  ? "bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-md shadow-indigo-200" 
-                  : "text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-slate-750"
+                  ? `bg-gradient-to-r ${activeColors.gradient} text-white shadow-md` 
+                  : `${activeColors.text} hover:${activeColors.bg}`
               }`}
             >
               <Sparkles className="h-4 w-4" />
               <span>{t.aiTutor}</span>
-              <span className="absolute top-1 right-2 w-2 h-2 rounded-full bg-violet-400 animate-ping" />
+              <span className={`absolute top-1 right-2 w-2 h-2 rounded-full ${activeColors.bgSolid} animate-ping`} />
             </button>
 
             <button
               onClick={() => { setActiveTab("calendar"); setSelectedLesson(null); setSelectedTask(null); }}
               className={`w-full flex items-center justify-start gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
                 activeTab === "calendar" 
-                  ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/50" 
-                  : "text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-750 hover:text-slate-900 dark:hover:text-slate-100"
+                  ? `${activeColors.bg} ${activeColors.text} border ${activeColors.border}` 
+                  : `text-slate-600 dark:text-slate-350 hover:${activeColors.bg} ${activeColors.textHover}`
               }`}
             >
               <Calendar className="h-4 w-4" />
@@ -448,8 +496,8 @@ ${activeClass ? `- Current Subject: ${activeClass.name}` : ''}
               onClick={() => { setActiveTab("settings"); setSelectedLesson(null); setSelectedTask(null); }}
               className={`w-full flex items-center justify-start gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
                 activeTab === "settings" 
-                  ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/50" 
-                  : "text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-750 hover:text-slate-900 dark:hover:text-slate-100"
+                  ? `${activeColors.bg} ${activeColors.text} border ${activeColors.border}` 
+                  : `text-slate-600 dark:text-slate-350 hover:${activeColors.bg} ${activeColors.textHover}`
               }`}
             >
               <Settings className="h-4 w-4" />
@@ -512,26 +560,58 @@ ${activeClass ? `- Current Subject: ${activeClass.name}` : ''}
                     
                     {/* Notice Board */}
                     <div className="bg-white dark:bg-[#18142c] border border-slate-200 dark:border-[#2b244c] rounded-2xl p-5 shadow-xs">
-                      <h3 className="text-sm font-bold font-display text-slate-800 dark:text-indigo-100 flex items-center gap-2 mb-4">
-                        <Bell className="h-4.5 w-4.5 text-indigo-500" /> Prof's Announcements
-                      </h3>
-                      {classAnnouncements.length > 0 ? (
-                        <div className="space-y-4">
-                          {classAnnouncements.map((ann) => (
-                            <div key={ann.id} className="p-4 bg-slate-50 dark:bg-[#201b3a] border border-slate-100 dark:border-[#2d2553]/50 rounded-xl relative">
-                              <h4 className="font-bold text-xs text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-                                {ann.title}
-                              </h4>
-                              <p className="text-slate-600 dark:text-slate-300 text-xs mt-1.5 leading-relaxed">{ann.content}</p>
-                              <div className="text-[9px] text-slate-400 dark:text-slate-500 font-mono mt-3 text-right">
-                                Posted by {ann.authorName} • {new Date(ann.publishedAt).toLocaleDateString()}
-                              </div>
-                            </div>
-                          ))}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                        <h3 className="text-sm font-bold font-display text-slate-800 dark:text-indigo-100 flex items-center gap-2">
+                          <Bell className="h-4.5 w-4.5 text-indigo-500" /> Prof's Announcements
+                        </h3>
+                        
+                        {/* Announcement Search Bar */}
+                        <div className="relative w-full sm:w-64">
+                          <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-slate-400" />
+                          <input
+                            type="text"
+                            placeholder="Search announcements..."
+                            value={announcementSearch}
+                            onChange={(e) => setAnnouncementSearch(e.target.value)}
+                            className="w-full pl-8 pr-7 py-1.5 bg-slate-50 dark:bg-[#1c1836] border border-slate-100 dark:border-[#2b244c] focus:border-indigo-500 rounded-lg text-xs text-slate-700 dark:text-slate-200 focus:outline-hidden"
+                          />
+                          {announcementSearch && (
+                            <button 
+                              onClick={() => setAnnouncementSearch("")}
+                              className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-semibold cursor-pointer"
+                            >
+                              ✕
+                            </button>
+                          )}
                         </div>
-                      ) : (
-                        <p className="text-slate-400 text-xs text-center py-4">No recent announcements in this class.</p>
-                      )}
+                      </div>
+
+                      {(() => {
+                        const filteredAnnouncements = classAnnouncements.filter(ann => 
+                          ann.title.toLowerCase().includes(announcementSearch.toLowerCase()) || 
+                          ann.content.toLowerCase().includes(announcementSearch.toLowerCase())
+                        );
+
+                        return filteredAnnouncements.length > 0 ? (
+                          <div className="space-y-4">
+                            {filteredAnnouncements.map((ann) => (
+                              <div key={ann.id} className="p-4 bg-slate-50 dark:bg-[#201b3a] border border-slate-100 dark:border-[#2d2553]/50 rounded-xl relative">
+                                <h4 className="font-bold text-xs text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                                  {ann.title}
+                                </h4>
+                                <p className="text-slate-600 dark:text-slate-300 text-xs mt-1.5 leading-relaxed">{ann.content}</p>
+                                <div className="text-[9px] text-slate-400 dark:text-slate-500 font-mono mt-3 text-right">
+                                  Posted by {ann.authorName} • {new Date(ann.publishedAt).toLocaleDateString()}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-slate-400 text-xs text-center py-4">
+                            {announcementSearch ? "No announcements match your search." : "No recent announcements in this class."}
+                          </p>
+                        );
+                      })()}
                     </div>
 
                     {/* Class Schedule Calendar */}
@@ -620,59 +700,242 @@ ${activeClass ? `- Current Subject: ${activeClass.name}` : ''}
             )}
 
             {/* LESSONS READER TAB */}
-            {activeTab === "lessons" && (
-              <div>
-                {!selectedLesson ? (
-                  <div className="space-y-4">
-                    <h2 className="text-lg font-bold font-display text-slate-800 dark:text-indigo-100 mb-2">Lessons & Reading Guides</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {classLessons.map((les) => (
+            {activeTab === "lessons" && (() => {
+              const filteredLessons = classLessons.filter(l => 
+                l.title.toLowerCase().includes(lessonSearch.toLowerCase()) || 
+                l.content.toLowerCase().includes(lessonSearch.toLowerCase())
+              );
+              return (
+                <div>
+                  {/* Subject Classroom Picker */}
+                  {activeGradeClasses.length > 0 && (
+                    <div className="mb-6 bg-white dark:bg-[#130f26] border border-slate-200 dark:border-[#241c49]/80 p-4 rounded-2xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="text-left">
+                        <h3 className="text-xs font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">Select Subject</h3>
+                        <p className="text-[10px] text-slate-400">Choose a subject under {activeGrade}</p>
+                      </div>
+                      <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#1c1836]/60 p-1.5 rounded-xl border border-slate-200 dark:border-[#2d2553]/50 overflow-x-auto shrink-0">
+                        {activeGradeClasses.map((cl) => {
+                          const { subject } = getGradeAndSubject(cl.name);
+                          const isSelected = activeClass?.id === cl.id;
+                          const clColors = getClassColors(cl.color);
+                          return (
+                            <button
+                              key={cl.id}
+                              onClick={() => {
+                                setActiveClass(cl);
+                                setSelectedLesson(null);
+                                setSelectedTask(null);
+                                handleResetDragDrop();
+                              }}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 cursor-pointer ${
+                                isSelected
+                                  ? `bg-white dark:bg-[#1c1836] ${clColors.text} shadow-xs border ${clColors.border}`
+                                  : `text-slate-600 dark:text-slate-350 ${clColors.textHover}`
+                              }`}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full ${clColors.bgSolid} ${isSelected ? "animate-pulse" : "opacity-60"}`} />
+                              {subject}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {!selectedLesson ? (
+                    <div className="space-y-4">
+                      <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
+                        <div>
+                          <h2 className="text-lg font-bold font-display text-slate-800 dark:text-indigo-100 mb-0.5">Lessons & Reading Guides</h2>
+                          <p className="text-slate-400 text-xs">Review digital lecture materials and complete interactive embeds to earn XP.</p>
+                        </div>
+                        <span className="bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 px-3 py-1 rounded-full text-xs font-mono font-semibold self-start md:self-center">
+                          {filteredLessons.length} available
+                        </span>
+                      </div>
+
+                      {/* Lesson Search Bar */}
+                      <div className="relative">
+                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                        <input
+                          type="text"
+                          placeholder="Search lessons by title or content..."
+                          value={lessonSearch}
+                          onChange={(e) => setLessonSearch(e.target.value)}
+                          className="w-full pl-9 pr-4 py-2 bg-white dark:bg-[#18142c] border border-slate-200 dark:border-[#2b244c] focus:border-indigo-500 rounded-xl text-xs text-slate-700 dark:text-slate-200 focus:outline-hidden"
+                        />
+                        {lessonSearch && (
+                          <button 
+                            onClick={() => setLessonSearch("")}
+                            className="absolute right-3 top-2.5 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+
+                      {filteredLessons.length === 0 ? (
+                        <div className="py-12 text-center bg-white dark:bg-[#18142c] border border-slate-200 dark:border-[#2b244c] rounded-2xl">
+                          <BookOpen className="h-8 w-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                          <p className="text-xs text-slate-400 font-semibold">No lessons match your search criteria.</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {filteredLessons.map((les) => (
                         <div 
                           key={les.id}
-                          className="bg-white dark:bg-[#18142c] border border-slate-200 dark:border-[#2b244c] p-5 rounded-2xl hover:border-indigo-400/60 shadow-xs cursor-pointer transition-all flex flex-col justify-between"
+                          className="bg-white dark:bg-[#18142c] border border-slate-200 dark:border-[#2b244c] p-5 rounded-2xl hover:border-indigo-400/60 shadow-xs cursor-pointer transition-all flex flex-col justify-between group"
                           onClick={() => setSelectedLesson(les)}
                         >
                           <div>
-                            <span className="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 px-2.5 py-1 rounded-md text-[9px] font-mono font-bold uppercase tracking-wide">
-                              Module Reading
-                            </span>
-                            <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm mt-3">{les.title}</h3>
-                            <p className="text-slate-400 dark:text-slate-400 text-xs mt-1 leading-relaxed line-clamp-3">
-                              {les.content.replace(/[#*`]/g, '')}
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 px-2.5 py-1 rounded-md text-[9px] font-mono font-bold uppercase tracking-wide">
+                                Module Reading
+                              </span>
+                              <div className="flex gap-1.5">
+                                {les.videoUrl && (
+                                  <span className="p-1 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 rounded" title="Includes Video Lecture">
+                                    <Video className="h-3 w-3" />
+                                  </span>
+                                )}
+                                {les.pptUrl && (
+                                  <span className="p-1 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 rounded" title="Includes Lecture Slides">
+                                    <Presentation className="h-3 w-3" />
+                                  </span>
+                                )}
+                                {les.webUrl && (
+                                  <span className="p-1 bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 rounded" title="Includes External Website">
+                                    <Globe className="h-3 w-3" />
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm mt-3 group-hover:text-indigo-500 transition-colors">{les.title}</h3>
+                            <p className="text-slate-400 dark:text-slate-400 text-xs mt-1.5 leading-relaxed line-clamp-3">
+                              {les.content.replace(/[#*`_-]/g, '')}
                             </p>
                           </div>
                           <div className="mt-4 pt-3 border-t border-slate-100 dark:border-[#251e40] flex items-center justify-between text-[11px] font-bold text-indigo-600 dark:text-indigo-400">
                             <span>Open Lesson Guide</span>
-                            <ChevronRight className="h-4 w-4" />
+                            <ChevronRight className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
                           </div>
                         </div>
                       ))}
+                        </div>
+                      )}
                     </div>
-                  </div>
                 ) : (
                   <motion.div 
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-white dark:bg-[#18142c] border border-slate-200 dark:border-[#2b244c] rounded-3xl p-6 md:p-8 shadow-sm"
+                    className="bg-white dark:bg-[#18142c] border border-slate-200 dark:border-[#2b244c] rounded-3xl p-6 md:p-8 shadow-sm space-y-6"
                   >
                     <button
                       onClick={() => setSelectedLesson(null)}
-                      className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors mb-6 font-semibold"
+                      className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors font-semibold"
                     >
                       <ArrowLeft className="h-4 w-4" /> Back to Lessons list
                     </button>
 
-                    <h2 className="text-2xl font-bold font-display text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-[#251e40] pb-4 mb-6">
-                      {selectedLesson.title}
-                    </h2>
+                    <div>
+                      <h2 className="text-2xl font-bold font-display text-slate-800 dark:text-slate-100 pb-2">
+                        {selectedLesson.title}
+                      </h2>
+                      <span className="text-[10px] text-slate-400 font-semibold font-mono">
+                        PUBLISHED {new Date(selectedLesson.publishedAt).toLocaleDateString()} BY {activeClass?.teacherName || "Class Instructor"}
+                      </span>
+                    </div>
 
-                    <div className="prose max-w-none text-slate-700 dark:text-slate-300 text-sm leading-relaxed space-y-4 whitespace-pre-wrap">
+                    <div className="prose max-w-none text-slate-700 dark:text-slate-300 text-sm leading-relaxed space-y-4 whitespace-pre-wrap border-t border-slate-100 dark:border-[#251e40] pt-4">
                       {selectedLesson.content}
                     </div>
 
+                    {/* DETAILED INTERACTIVE MEDIA SECTION */}
+                    {(selectedLesson.videoUrl || selectedLesson.pptUrl || selectedLesson.webUrl) && (
+                      <div className="border-t border-slate-200/50 dark:border-[#2c2452]/40 pt-6 space-y-4">
+                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                          Interactive Lesson Media
+                        </h3>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* VIDEO PLAYER */}
+                          {selectedLesson.videoUrl && (
+                            <div className="bg-slate-50 dark:bg-[#110d26] border border-slate-200 dark:border-[#2b244c] rounded-2xl p-4 shadow-inner flex flex-col justify-between">
+                              <div>
+                                <span className="flex items-center gap-1.5 text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mb-2">
+                                  <Video className="h-3.5 w-3.5 animate-pulse" /> Video Lecture Demonstration
+                                </span>
+                                <div className="relative aspect-video rounded-xl overflow-hidden border border-slate-200 dark:border-[#2b244c]">
+                                  <iframe
+                                    src={getYoutubeEmbedUrl(selectedLesson.videoUrl)}
+                                    title="Video Lecture"
+                                    className="absolute inset-0 w-full h-full"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* POWERPOINT / SLIDES SLIDESHOW */}
+                          {selectedLesson.pptUrl && (
+                            <div className="bg-slate-50 dark:bg-[#110d26] border border-slate-200 dark:border-[#2b244c] rounded-2xl p-4 shadow-inner flex flex-col justify-between">
+                              <div>
+                                <span className="flex items-center gap-1.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-2">
+                                  <Presentation className="h-3.5 w-3.5" /> Embedded PowerPoint Slides
+                                </span>
+                                <div className="relative aspect-video rounded-xl overflow-hidden border border-slate-200 dark:border-[#2b244c] bg-[#1c1836]">
+                                  <iframe
+                                    src={selectedLesson.pptUrl}
+                                    title="Lesson Slides Presentation"
+                                    className="absolute inset-0 w-full h-full"
+                                    allowFullScreen
+                                  />
+                                </div>
+                              </div>
+                              <p className="text-[9px] text-slate-400 mt-2 font-mono text-center">Use slide controls to navigate the presentation deck.</p>
+                            </div>
+                          )}
+
+                          {/* CORE WEBSITE RESOURCE */}
+                          {selectedLesson.webUrl && (
+                            <div className="bg-slate-50 dark:bg-[#110d26] border border-slate-200 dark:border-[#2b244c] rounded-2xl p-4 shadow-inner col-span-1 md:col-span-2">
+                              <span className="flex items-center gap-1.5 text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-2">
+                                <Globe className="h-3.5 w-3.5" /> Lesson Sandbox & Web Resource
+                              </span>
+                              
+                              <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-white dark:bg-[#1c1836] rounded-xl border border-slate-200 dark:border-[#2b244c]">
+                                <div className="p-3 bg-blue-50 dark:bg-blue-950/40 rounded-xl text-blue-600 dark:text-blue-400">
+                                  <Globe className="h-6 w-6" />
+                                </div>
+                                <div className="flex-1 text-center sm:text-left min-w-0">
+                                  <h4 className="font-bold text-xs text-slate-800 dark:text-slate-100">
+                                    {selectedLesson.webUrlTitle || "Interactive Study Lab Resource"}
+                                  </h4>
+                                  <p className="text-[10px] text-slate-400 dark:text-slate-450 font-semibold truncate mt-0.5">
+                                    {selectedLesson.webUrl}
+                                  </p>
+                                </div>
+                                <a
+                                  href={selectedLesson.webUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0"
+                                >
+                                  Launch Interactive Sandbox <ExternalLink className="h-3.5 w-3.5" />
+                                </a>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="mt-8 pt-6 border-t border-slate-100 dark:border-[#251e40] flex justify-between items-center bg-slate-50 dark:bg-[#201b3a] -mx-6 -mb-6 p-6 rounded-b-3xl">
                       <span className="text-xs text-slate-400">
-                        Published by {activeClass.teacherName}
+                        Published by {activeClass?.teacherName || "Class Instructor"}
                       </span>
                       <button
                         onClick={() => {
@@ -688,16 +951,123 @@ ${activeClass ? `- Current Subject: ${activeClass.name}` : ''}
                   </motion.div>
                 )}
               </div>
-            )}
+              );
+            })()}
 
             {/* ASSIGNMENTS TAB */}
-            {activeTab === "tasks" && (
-              <div>
-                {!selectedTask ? (
-                  <div className="space-y-4">
-                    <h2 className="text-lg font-bold font-display text-slate-800 dark:text-indigo-100 mb-2">Pending Assignments</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {classTasks.map((task) => {
+            {activeTab === "tasks" && (() => {
+              const filteredTasks = classTasks.filter(t => 
+                t.title.toLowerCase().includes(taskSearch.toLowerCase()) || 
+                t.description.toLowerCase().includes(taskSearch.toLowerCase())
+              );
+              return (
+                <div>
+                  {/* Subject Classroom Picker */}
+                  {grades.length > 0 && (
+                    <div className="mb-6 bg-white dark:bg-[#130f26] border border-slate-200 dark:border-[#241c49]/80 p-4 rounded-2xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="text-left">
+                        <h3 className="text-xs font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">Select Classroom Channel</h3>
+                        <p className="text-[10px] text-slate-400">Filter assignments by grade & subject</p>
+                      </div>
+                      <div className="flex items-center gap-2 bg-slate-100 dark:bg-[#1c1836]/60 p-1.5 rounded-xl border border-slate-200 dark:border-[#2d2553]/50 overflow-x-auto">
+                        <div className="flex items-center gap-1 shrink-0">
+                          {grades.map((grade) => {
+                            const isActive = activeGrade === grade;
+                            return (
+                              <button
+                                key={grade}
+                                onClick={() => {
+                                  const firstCl = classesByGrade[grade]?.[0];
+                                  if (firstCl) {
+                                    setActiveClass(firstCl);
+                                    setSelectedLesson(null);
+                                    setSelectedTask(null);
+                                    handleResetDragDrop();
+                                  }
+                                }}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                  isActive
+                                    ? "bg-indigo-600 text-white shadow-xs"
+                                    : "text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-[#251e44]/50"
+                                }`}
+                              >
+                                {grade}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {activeGradeClasses.length > 0 && (
+                          <div className="h-5 w-px bg-slate-200 dark:bg-[#2e265c] shrink-0" />
+                        )}
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          {activeGradeClasses.map((cl) => {
+                            const { subject } = getGradeAndSubject(cl.name);
+                            const isSelected = activeClass?.id === cl.id;
+                            const clColors = getClassColors(cl.color);
+                            return (
+                              <button
+                                key={cl.id}
+                                onClick={() => {
+                                  setActiveClass(cl);
+                                  setSelectedLesson(null);
+                                  setSelectedTask(null);
+                                  handleResetDragDrop();
+                                }}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 cursor-pointer ${
+                                  isSelected
+                                    ? `bg-white dark:bg-[#1c1836] ${clColors.text} shadow-xs border ${clColors.border}`
+                                    : `text-slate-600 dark:text-slate-350 ${clColors.textHover}`
+                                }`}
+                              >
+                                <span className={`w-1.5 h-1.5 rounded-full ${clColors.bgSolid} ${isSelected ? "animate-pulse" : "opacity-60"}`} />
+                                {subject}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {!selectedTask ? (
+                    <div className="space-y-4">
+                      <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
+                        <h2 className="text-lg font-bold font-display text-slate-800 dark:text-indigo-100 mb-2">Pending Assignments</h2>
+                        <span className="bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 px-3 py-1 rounded-full text-xs font-mono font-semibold self-start md:self-center">
+                          {filteredTasks.length} available
+                        </span>
+                      </div>
+
+                      {/* Assignment Search Bar */}
+                      <div className="relative">
+                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                        <input
+                          type="text"
+                          placeholder="Search assignments by title or instructions..."
+                          value={taskSearch}
+                          onChange={(e) => setTaskSearch(e.target.value)}
+                          className="w-full pl-9 pr-4 py-2 bg-white dark:bg-[#18142c] border border-slate-200 dark:border-[#2b244c] focus:border-indigo-500 rounded-xl text-xs text-slate-700 dark:text-slate-200 focus:outline-hidden"
+                        />
+                        {taskSearch && (
+                          <button 
+                            onClick={() => setTaskSearch("")}
+                            className="absolute right-3 top-2.5 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+
+                      {filteredTasks.length === 0 ? (
+                        <div className="py-12 text-center bg-white dark:bg-[#18142c] border border-slate-200 dark:border-[#2b244c] rounded-2xl">
+                          <Award className="h-8 w-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                          <p className="text-xs text-slate-400 font-semibold">No assignments match your search criteria.</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {filteredTasks.map((task) => {
                         // Check if already completed
                         const submission = submissions.find(s => s.taskId === task.id && s.studentId === currentStudent.id);
                         
@@ -745,8 +1115,9 @@ ${activeClass ? `- Current Subject: ${activeClass.name}` : ''}
                           </div>
                         );
                       })}
+                        </div>
+                      )}
                     </div>
-                  </div>
                 ) : (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
@@ -912,7 +1283,8 @@ ${activeClass ? `- Current Subject: ${activeClass.name}` : ''}
                   </motion.div>
                 )}
               </div>
-            )}
+              );
+            })()}
 
             {/* PEER DISCUSS CHAT ROOM TAB */}
             {activeTab === "chat" && (
@@ -1095,6 +1467,7 @@ ${activeClass ? `- Current Subject: ${activeClass.name}` : ''}
             {/* CALENDAR TAB */}
             {activeTab === "calendar" && (
               <InteractiveCalendar 
+                classes={classes}
                 tasks={tasks}
                 events={events}
                 submissions={submissions}

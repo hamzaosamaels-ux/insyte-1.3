@@ -117,7 +117,7 @@ const seedData: DbSchema = {
       xp: 2450,
       level: 3,
       rank: "Advanced Scholar",
-      joinedClasses: ["class-1", "class-2"]
+      joinedClasses: ["class-1", "class-2", "class-3", "class-4"]
     },
     {
       id: "student-2",
@@ -128,7 +128,7 @@ const seedData: DbSchema = {
       xp: 3200,
       level: 4,
       rank: "Elite Scholar",
-      joinedClasses: ["class-1"]
+      joinedClasses: ["class-1", "class-3"]
     },
     {
       id: "student-3",
@@ -139,7 +139,7 @@ const seedData: DbSchema = {
       xp: 1850,
       level: 2,
       rank: "Active Scholar",
-      joinedClasses: ["class-1", "class-2"]
+      joinedClasses: ["class-1", "class-2", "class-3", "class-4"]
     },
     {
       id: "student-4",
@@ -150,7 +150,7 @@ const seedData: DbSchema = {
       xp: 1200,
       level: 2,
       rank: "Active Scholar",
-      joinedClasses: ["class-2"]
+      joinedClasses: ["class-2", "class-4"]
     }
   ],
   teacher: {
@@ -162,73 +162,121 @@ const seedData: DbSchema = {
     xp: 0,
     level: 10,
     rank: "Master Educator",
-    joinedClasses: ["class-1", "class-2"]
+    joinedClasses: ["class-1", "class-2", "class-3", "class-4"]
   },
   classes: [
     {
       id: "class-1",
-      name: "Computer Science 101",
-      code: "CS101",
-      description: "Learn the fundamentals of software development, algorithms, and full-stack web applications.",
+      name: "Class 2B - German",
+      code: "GERM2B",
+      description: "German language and literature class for Class 2B. Learn vocabulary, basic grammar rules, and common greetings.",
       teacherId: "teacher-1",
       teacherName: "Prof. Hamza",
-      studentIds: ["student-1", "student-2", "student-3"]
+      studentIds: ["student-1", "student-2", "student-3"],
+      color: "emerald"
     },
     {
       id: "class-2",
-      name: "Creative Writing Workshop",
-      code: "WRITE22",
-      description: "Explore world-building, narrative pacing, character development, and critical literary feedback.",
+      name: "Class 2B - Math",
+      code: "MATH2B",
+      description: "Mathematics and logical arithmetic class for Class 2B. Focuses on fractions, simple division, and equations.",
       teacherId: "teacher-1",
       teacherName: "Prof. Hamza",
-      studentIds: ["student-1", "student-3", "student-4"]
+      studentIds: ["student-1", "student-3", "student-4"],
+      color: "violet"
+    },
+    {
+      id: "class-3",
+      name: "Class 3A - Science",
+      code: "SCI3A",
+      description: "Explore the exciting world of Science, physics, and biological ecosystems for Class 3A.",
+      teacherId: "teacher-1",
+      teacherName: "Prof. Hamza",
+      studentIds: ["student-1", "student-2", "student-3"],
+      color: "sky"
+    },
+    {
+      id: "class-4",
+      name: "Class 3A - History",
+      code: "HIST3A",
+      description: "Journey through ancient civilizations, medieval conflicts, and modern revolutions in Class 3A History.",
+      teacherId: "teacher-1",
+      teacherName: "Prof. Hamza",
+      studentIds: ["student-1", "student-3", "student-4"],
+      color: "rose"
     }
   ],
   lessons: [
     {
       id: "lesson-1",
       classId: "class-1",
-      title: "1. Introduction to Web Technologies",
-      content: `## Welcome to Computer Science 101!\nIn this lesson, we will explore the three core technologies that power the modern web:\n\n### 1. HTML (HyperText Markup Language)\nHTML provides the **skeleton** and structure of any webpage. It uses tags like \`<h1>\`, \`<p>\`, and \`<div>\` to represent headings, paragraphs, and containers.\n\n### 2. CSS (Cascading Style Sheets)\nCSS acts as the **skin** and visual presentation layer. It defines layouts, colors, margins, and responsiveness using selectors.\n\n### 3. JavaScript\nJavaScript is the **brain** and programming layer of the browser. It enables interactive behaviors, data fetching, animations, and state transitions dynamically.\n\n### Summary\nThe web functions on a Client-Server architecture. The client (browser) requests documents, and the server serves HTML, CSS, and JS files which the browser renders.`,
-      publishedAt: "2026-07-10T09:00:00Z"
+      title: "1. Basic German Greetings",
+      content: `## Guten Tag! Welcome to Class 2B German!\nIn this lesson, we will explore core greetings that form the foundation of conversational German:\n\n### 1. Guten Tag (Good day / Hello)\nThe most common polite greeting used throughout Germany. You can use it with anyone from teachers to shopkeepers!\n\n### 2. Guten Morgen (Good morning)\nUsed typically until about 11 AM to wish someone a wonderful morning.\n\n### 3. Danke & Bitte (Thank you & Please)\nPolite conversational keywords. 'Bitte' also doubles as 'You are welcome' when someone says 'Danke'.\n\n### 4. Auf Wiedersehen (Goodbye)\nA slightly formal but very polite way to say goodbye, literally meaning 'Until we see each other again'.\n\n### Summary Dialogue\n- **A**: Guten Tag, wie geht es dir? (Hello, how are you?)\n- **B**: Mir geht es gut, danke! Und dir? (I am doing well, thank you! And you?)`,
+      publishedAt: "2026-07-10T09:00:00Z",
+      videoUrl: "https://www.youtube.com/embed/g93UfP699sA",
+      webUrl: "https://www.germanpod101.com",
+      webUrlTitle: "GermanPod101 Pronunciation Guide"
     },
     {
       id: "lesson-2",
       classId: "class-1",
-      title: "2. Exploring Variables and Functions",
-      content: `## Programming Building Blocks\nTo write active applications, we must master the absolute core of coding: variables and functions.\n\n### Variables: Storing Information\nVariables are named storage containers for data. In modern JavaScript, we declare them with:\n- \`let\`: For values that can change.\n- \`const\`: For read-only values that remain constant.\n\n### Functions: Reusable Code Blocks\nA function is a grouped set of statements designed to perform a particular task.\n\`\`\`js\nfunction calculateXp(completedTasks) {\n  return completedTasks * 100;\n}\n\`\`\`\n\n### Quick Check\nAlways use descriptive names for variables to keep code maintainable!`,
+      title: "2. German Nouns and Genders",
+      content: `## Noun Genders in German\nUnlike English, German nouns can be masculine, feminine, or neuter, and require different definite articles ('the'):\n\n### 1. Masculine: Der\nUsed for masculine nouns.\n- *der Mann* (the man)\n- *der Hund* (the dog)\n\n### 2. Feminine: Die\nUsed for feminine nouns.\n- *die Frau* (the woman)\n- *die Katze* (the cat)\n\n### 3. Neuter: Das\nUsed for neuter nouns.\n- *das Kind* (the child)\n- *das Buch* (the book)\n\n### Key Rule\nAlways learn a new German noun alongside its corresponding article (*der, die, or das*)!`,
       publishedAt: "2026-07-12T10:30:00Z"
     },
     {
       id: "lesson-3",
       classId: "class-2",
-      title: "1. The Hero's Journey Narrative Arc",
-      content: `## Crafting compelling stories\nThe **Hero's Journey** (or Monomyth) is a classic story template found in myths, novels, and films.\n\n### Three Primary Stages\n1. **Departure**: The hero leaves their ordinary world (The Call to Adventure, meeting the mentor).\n2. **Initiation**: The hero faces trials, enters the abyss, and undergoes a transformation.\n3. **Return**: The hero returns with a "boon" or new wisdom to share with the world.\n\n### Writing Prompt\nConsider your favorite protagonist. Do they follow this structure? Sketch their call to adventure in 3 sentences.`,
-      publishedAt: "2026-07-11T14:00:00Z"
+      title: "1. Understanding Fractions",
+      content: `## Introduction to Fractions\nFractions are used to represent a portion or a part of a whole quantity.\n\n### Anatomy of a Fraction\n- **Numerator** (the top number): Indicates how many parts of the whole we are actively considering.\n- **Denominator** (the bottom number): Indicates how many equal parts the whole is divided into.\n\n### Visualization\nImagine a large delicious pizza sliced into **4 equal parts**:\n- If you eat 1 slice, you have consumed **1/4** of the pizza.\n- If Chloe eats 2 slices, she has consumed **2/4** (which simplifies to **1/2**) of the pizza.\n- The denominator remains 4 because the pizza is always cut into 4 total slices.\n\n### Word Problem\nIf a chocolate bar has 6 blocks, and you eat 3 blocks, you have eaten 3/6 (or 1/2) of the bar!`,
+      publishedAt: "2026-07-11T14:00:00Z",
+      videoUrl: "https://www.youtube.com/embed/DnFrOctuGPg"
+    },
+    {
+      id: "lesson-4",
+      classId: "class-3",
+      title: "Quantum Physics & Space-Time Mechanics",
+      content: `## Immersive Quantum Physics & Space-Time lecture!\nWelcome, Scholars. Today we delve into the marvelous world of quantum field theory and relativity.\n\n### Key Conceptual Pillars:\n- **Quantum Superposition**: Particles exist in all possible states until observed.\n- **Space-Time Curvature**: Gravitational forces are described as geometric distortions of the fourth-dimensional continuum.\n- **Quantum Entanglement**: Action at a distance, connecting particle spins across galaxies.\n\nTake a look at the attached Kurzgesagt documentary video and the immersive Google Slides lecture notes below.`,
+      publishedAt: "2026-07-14T08:00:00Z",
+      videoUrl: "https://www.youtube.com/embed/3M8iW0n_r68",
+      pptUrl: "https://docs.google.com/presentation/d/e/2PACX-1vS_g7z9W4kLqS_iS9-j95UvREB4V8gI3n6yDOnXq-B7sRkE3lT31u_b4S/embed?start=false&loop=false&delayms=3000",
+      webUrl: "https://eyes.nasa.gov",
+      webUrlTitle: "NASA Interactive Eyes on Space"
+    },
+    {
+      id: "lesson-5",
+      classId: "class-4",
+      title: "Historical Architecture of Ancient Rome",
+      content: `## The Marvels of Roman Architecture\nWelcome to Class 3A History! This lesson covers the incredible structural and artistic feats of the Roman Empire:\n\n### Core Engineering Feats:\n- **The Arch**: Distributes weight more evenly, allowing larger bridges and roofs.\n- **Concrete (Opus Caementicium)**: A formula using volcanic ash, allowing underwater construction and long-lasting monuments.\n- **The Aqueducts**: Gravity-fed water supplies leading straight into Rome's center.\n\nExplore the virtual 3D reconstruction video of Ancient Rome and review the PowerPoint deck.`,
+      publishedAt: "2026-07-14T09:15:00Z",
+      videoUrl: "https://www.youtube.com/embed/b3R7-V-g3C0",
+      pptUrl: "https://docs.google.com/presentation/d/e/2PACX-1vS_g7z9W4kLqS_iS9-j95UvREB4V8gI3n6yDOnXq-B7sRkE3lT31u_b4S/embed?start=false&loop=false&delayms=5000",
+      webUrl: "https://www.worldhistory.org/Rome/",
+      webUrlTitle: "World History Encyclopedia: Ancient Rome"
     }
   ],
   tasks: [
     {
       id: "task-1",
       classId: "class-1",
-      title: "Web Core Component Matcher",
-      description: "Pair the web technologies with their primary responsibility. Drag each technology block into its appropriate role category below.",
+      title: "German Vocabulary Matcher",
+      description: "Match the German greeting or phrase with its correct English meaning. Drag each German text block into its appropriate English definition container below.",
       rewardXp: 150,
       dueDate: "2026-07-20",
       type: "dragdrop",
-      dragItems: ["HTML", "CSS", "JavaScript"],
-      dropZones: ["Defines Layout & Colors", "Structures Document Skeleton", "Implements Live Interactivity"],
+      dragItems: ["Guten Tag", "Danke", "Auf Wiedersehen"],
+      dropZones: ["Good day / Hello", "Thank you", "Goodbye"],
       correctPairing: {
-        "CSS": "Defines Layout & Colors",
-        "HTML": "Structures Document Skeleton",
-        "JavaScript": "Implements Live Interactivity"
+        "Guten Tag": "Good day / Hello",
+        "Danke": "Thank you",
+        "Auf Wiedersehen": "Goodbye"
       }
     },
     {
       id: "task-2",
       classId: "class-1",
-      title: "Create Your First JS Script",
-      description: "Write a short JavaScript function named 'greetStudent(name)' that takes a student name string and returns a greeting like 'Welcome back, [name]!'. Explain what your function does in 1-2 sentences.",
+      title: "Introduce Yourself in German",
+      description: "Write a short paragraph in German introducing yourself. Say hello, state your name, and write a polite closing phrase using what you have learned.",
       rewardXp: 200,
       dueDate: "2026-07-22",
       type: "text"
@@ -236,8 +284,8 @@ const seedData: DbSchema = {
     {
       id: "task-3",
       classId: "class-2",
-      title: "The Portal Prompt",
-      description: "Write a 150-word opening paragraph of a fantasy story where the protagonist finds an ancient, glowing key inside an ordinary school locker.",
+      title: "The Fraction Pizza Challenge",
+      description: "Write a short explanation to solve this: If Alex has 5/8 of a cake and gives 2/8 of the cake to Marcus, what fraction of the cake does Alex have left? Show your formula and explain your steps.",
       rewardXp: 250,
       dueDate: "2026-07-19",
       type: "text"
@@ -247,16 +295,16 @@ const seedData: DbSchema = {
     {
       id: "ann-1",
       classId: "class-1",
-      title: "Welcome to CS 101!",
-      content: "Hi everyone! Professor Hamza here. I am thrilled to guide you through coding basics this semester. Check the Lessons tab to start reading, and don't forget to ask the Insyte AI Chat Buddy any questions you have!",
+      title: "Welcome to Class 2B German!",
+      content: "Hi everyone! Professor Hamza here. I am thrilled to guide you through conversational German and grammar this semester. Check out the Lessons tab to start, and use our Insyte AI Tutor to practice writing German sentences!",
       authorName: "Prof. Hamza",
       publishedAt: "2026-07-10T09:00:00Z"
     },
     {
       id: "ann-2",
       classId: "class-2",
-      title: "Locker Customization Live",
-      content: "Hello writers! We have unlocked custom avatars in our locker profile settings. Earn XP by completing tasks to boost your standing on the Leaderboard!",
+      title: "Fractions Practice Active",
+      content: "Hello mathematicians! We have unlocked our first Math task on fractions. Complete the task before the deadline to earn 250 XP and climb our leaderboard!",
       authorName: "Prof. Hamza",
       publishedAt: "2026-07-11T14:15:00Z"
     }
@@ -269,7 +317,7 @@ const seedData: DbSchema = {
       senderName: "Prof. Hamza",
       senderRole: "teacher",
       senderAvatar: "https://api.dicebear.com/7.x/adventurer/svg?seed=Hamza",
-      text: "Welcome to the Computer Science chat room! Ask your classmates for help here.",
+      text: "Guten Tag everyone! Welcome to the Class 2B German chat room. Ask questions or converse in German here!",
       timestamp: "2026-07-10T09:05:00Z"
     },
     {
@@ -279,7 +327,7 @@ const seedData: DbSchema = {
       senderName: "Alex Rivera",
       senderRole: "student",
       senderAvatar: "https://api.dicebear.com/7.x/adventurer/svg?seed=Alex",
-      text: "Thanks Prof! Stoked to learn JavaScript this term.",
+      text: "Hallo Prof! Super excited to learn German this semester.",
       timestamp: "2026-07-10T11:20:00Z"
     },
     {
@@ -289,7 +337,7 @@ const seedData: DbSchema = {
       senderName: "Chloe Chen",
       senderRole: "student",
       senderAvatar: "https://api.dicebear.com/7.x/adventurer/svg?seed=Chloe",
-      text: "Has anyone started the Web Core matcher task yet? It looks super fun!",
+      text: "Has anyone completed the German Vocabulary Matcher? It's so cool!",
       timestamp: "2026-07-12T15:45:00Z"
     },
     {
@@ -299,7 +347,7 @@ const seedData: DbSchema = {
       senderName: "Marcus Vance",
       senderRole: "student",
       senderAvatar: "https://api.dicebear.com/7.x/adventurer/svg?seed=Marcus",
-      text: "Yeah Chloe! It really helps visualize how CSS structures the colors.",
+      text: "Yes Chloe! It makes matching 'Auf Wiedersehen' to goodbye very intuitive.",
       timestamp: "2026-07-12T16:10:00Z"
     }
   ],
@@ -307,24 +355,24 @@ const seedData: DbSchema = {
     {
       id: "evt-1",
       classId: "class-1",
-      title: "Virtual Coding Q&A Session",
-      description: "Join Professor Hamza on a collaborative livestream to review variables, scope, and script writing.",
+      title: "German Conversation Live Practice",
+      description: "Join Professor Hamza on a live review of basic Greetings, German pronunciation, and pronoun grammar rules.",
       date: "2026-07-18",
       time: "15:00"
     },
     {
       id: "evt-2",
       classId: "class-1",
-      title: "Web Core Matcher Homework Due",
-      description: "Complete your drag-and-drop matching assignment by tonight for XP rewards.",
+      title: "German Matcher Assignment Due",
+      description: "Make sure to finish your drag-and-drop matching assignment by tonight for XP rewards.",
       date: "2026-07-20",
       time: "23:59"
     },
     {
       id: "evt-3",
       classId: "class-2",
-      title: "Live Story Peer Review",
-      description: "Bring your fantasy story portal paragraph and swap feedback with classmates.",
+      title: "Math Fractions Workshop",
+      description: "Bring your questions about numerators, denominators, and chocolate block divisions to class.",
       date: "2026-07-19",
       time: "10:00"
     }
@@ -449,7 +497,7 @@ async function startServer() {
 
   // Create a brand new Class Community
   app.post("/api/classes", (req, res) => {
-    const { name, code, description, teacherId, teacherName } = req.body;
+    const { name, code, description, teacherId, teacherName, color } = req.body;
     if (!name || !code) {
       return res.status(400).json({ error: "Class name and code are required." });
     }
@@ -462,7 +510,8 @@ async function startServer() {
       description: description || "",
       teacherId: teacherId || db.teacher.id,
       teacherName: teacherName || db.teacher.name,
-      studentIds: db.students.map(s => s.id) // Automatically enroll all active student profiles
+      studentIds: db.students.map(s => s.id), // Automatically enroll all active student profiles
+      color: color || "indigo"
     };
 
     db.classes.push(newClass);
@@ -479,7 +528,7 @@ async function startServer() {
 
   // Publish a new lesson guide
   app.post("/api/lessons", (req, res) => {
-    const { classId, title, content } = req.body;
+    const { classId, title, content, videoUrl, pptUrl, webUrl, webUrlTitle } = req.body;
     if (!classId || !title || !content) {
       return res.status(400).json({ error: "classId, title, and content are required." });
     }
@@ -490,12 +539,60 @@ async function startServer() {
       classId,
       title,
       content,
-      publishedAt: new Date().toISOString()
+      publishedAt: new Date().toISOString(),
+      videoUrl: videoUrl || "",
+      pptUrl: pptUrl || "",
+      webUrl: webUrl || "",
+      webUrlTitle: webUrlTitle || ""
     };
 
     db.lessons.unshift(newLesson); // Prepend so most recent appears first
     writeDb(db);
     res.status(201).json(newLesson);
+  });
+
+  // Update an existing lesson guide
+  app.put("/api/lessons/:id", (req, res) => {
+    const { id } = req.params;
+    const { title, content, videoUrl, pptUrl, webUrl, webUrlTitle } = req.body;
+
+    if (!title || !content) {
+      return res.status(400).json({ error: "title and content are required." });
+    }
+
+    const db = readDb();
+    const index = db.lessons.findIndex(l => l.id === id);
+    if (index === -1) {
+      return res.status(404).json({ error: "Lesson not found." });
+    }
+
+    db.lessons[index] = {
+      ...db.lessons[index],
+      title,
+      content,
+      videoUrl: videoUrl || "",
+      pptUrl: pptUrl || "",
+      webUrl: webUrl || "",
+      webUrlTitle: webUrlTitle || ""
+    };
+
+    writeDb(db);
+    res.json(db.lessons[index]);
+  });
+
+  // Delete an existing lesson guide
+  app.delete("/api/lessons/:id", (req, res) => {
+    const { id } = req.params;
+    const db = readDb();
+    const initialLength = db.lessons.length;
+    db.lessons = db.lessons.filter(l => l.id !== id);
+
+    if (db.lessons.length === initialLength) {
+      return res.status(404).json({ error: "Lesson not found." });
+    }
+
+    writeDb(db);
+    res.json({ success: true, message: "Lesson deleted successfully." });
   });
 
   // Publish a new homework assignment task
@@ -709,22 +806,65 @@ async function startServer() {
       });
 
       // Map roles from UI structure (user / assistant) to Gemini SDK structure (user / model)
-      const contents = messages.map((msg: any) => ({
+      let contents = messages.map((msg: any) => ({
         role: msg.role === 'assistant' || msg.role === 'model' ? 'model' : 'user',
         parts: [{ text: msg.text || msg.content }]
       }));
 
-      // Request content generation from Gemini 3.5-flash
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
-        contents,
-        config: {
-          systemInstruction: systemPrompt || "You are a helpful educational tutor named Insyte AI.",
-          temperature: 0.7,
-          maxOutputTokens: 800,
-        }
-      });
+      // The Gemini API requires the first turn in a multi-turn contents array to be from 'user'.
+      // If the conversation starts with a static assistant/model welcome greeting, discard leading 'model' messages.
+      while (contents.length > 0 && contents[0].role !== 'user') {
+        contents.shift();
+      }
 
+      // Request content generation with automatic retry and model fallback (e.g., to gemini-3.1-flash-lite if gemini-3.5-flash is temporarily unavailable/loaded)
+      const generateWithRetryAndFallback = async () => {
+        const modelsToTry = ['gemini-3.5-flash', 'gemini-3.1-flash-lite'];
+        let lastError: any = null;
+
+        for (const model of modelsToTry) {
+          const maxRetries = 2;
+          for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+              console.log(`Calling Gemini API using model: ${model} (attempt ${attempt}/${maxRetries})`);
+              const resObj = await ai.models.generateContent({
+                model,
+                contents,
+                config: {
+                  systemInstruction: systemPrompt || "You are a helpful educational tutor named Insyte AI.",
+                  temperature: 0.7,
+                  maxOutputTokens: 800,
+                }
+              });
+              return resObj;
+            } catch (err: any) {
+              lastError = err;
+              const errMsg = err.message || "";
+              console.warn(`Attempt ${attempt} with model ${model} failed:`, errMsg);
+
+              const isTransient = errMsg.includes('503') || 
+                                  errMsg.includes('UNAVAILABLE') || 
+                                  errMsg.includes('429') || 
+                                  errMsg.includes('Resource Exhausted') ||
+                                  err.status === 503 || 
+                                  err.status === 429;
+
+              if (!isTransient) {
+                // For non-transient errors (e.g., invalid payload, structural errors, permission issues), break immediately
+                break;
+              }
+
+              if (attempt < maxRetries) {
+                // Wait briefly before retrying
+                await new Promise(resolve => setTimeout(resolve, 500));
+              }
+            }
+          }
+        }
+        throw lastError;
+      };
+
+      const response = await generateWithRetryAndFallback();
       res.json({ text: response.text });
     } catch (error: any) {
       console.error("Error communicating with Gemini API:", error);

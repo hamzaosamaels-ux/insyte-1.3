@@ -1,9 +1,11 @@
 import React, { useState } from "react";
-import { TaskItem, ClassEvent, TaskSubmission } from "../types";
+import { TaskItem, ClassEvent, TaskSubmission, ClassCommunity } from "../types";
 import { getTranslation, Language } from "../translations";
 import { Calendar as CalendarIcon, Clock, Award, CheckCircle2, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
+import { getClassColors } from "../utils/colorHelper";
 
 interface InteractiveCalendarProps {
+  classes?: ClassCommunity[];
   tasks: TaskItem[];
   events: ClassEvent[];
   submissions?: TaskSubmission[];
@@ -12,6 +14,7 @@ interface InteractiveCalendarProps {
 }
 
 export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
+  classes = [],
   tasks,
   events,
   submissions = [],
@@ -239,13 +242,29 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
                   </span>
 
                   {/* Dot Notification Indicators */}
-                  <div className="flex gap-1 justify-center mt-1.5 h-1.5">
-                    {hasTasks && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 animate-pulse" title={`${dayTasks.length} ${t.assignments}`} />
-                    )}
-                    {hasEvents && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-purple-500 dark:bg-purple-400" title={`${dayEvents.length} ${t.calendar}`} />
-                    )}
+                  <div className="flex flex-wrap gap-1 justify-center mt-1.5 h-1.5">
+                    {dayTasks.map(task => {
+                      const cl = classes?.find(c => c.id === task.classId);
+                      const clColors = getClassColors(cl?.color);
+                      return (
+                        <span 
+                          key={task.id} 
+                          className={`w-1.5 h-1.5 rounded-full ${clColors.bgSolid} animate-pulse`} 
+                          title={`${task.title} (${cl?.code || ""})`} 
+                        />
+                      );
+                    })}
+                    {dayEvents.map(evt => {
+                      const cl = classes?.find(c => c.id === evt.classId);
+                      const clColors = getClassColors(cl?.color);
+                      return (
+                        <span 
+                          key={evt.id} 
+                          className={`w-1.5 h-1.5 rounded-full ${clColors.bgSolid}`} 
+                          title={`${evt.title} (${cl?.code || ""})`} 
+                        />
+                      );
+                    })}
                   </div>
 
                   {/* Tiny counter on hover */}
@@ -291,27 +310,29 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
                     {selectedDayTasks.map((task) => {
                       // Check if completed
                       const completed = submissions.some(s => s.taskId === task.id && s.studentId === currentStudentId);
+                      const cl = classes?.find(c => c.id === task.classId);
+                      const clColors = getClassColors(cl?.color);
                       return (
-                        <div key={task.id} className="p-3 bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-100 dark:border-[#2d2553]/60 rounded-xl space-y-1.5 text-left">
+                        <div key={task.id} className={`p-3 ${clColors.bg} border ${clColors.border} rounded-xl space-y-1.5 text-left`}>
                           <div className="flex items-start justify-between">
-                            <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">
+                            <span className="font-bold text-slate-800 dark:text-slate-100 text-xs">
                               {task.title}
                             </span>
-                            <span className="text-amber-500 font-bold text-[10px] font-mono shrink-0 flex items-center">
+                            <span className={`font-bold text-[10px] font-mono shrink-0 flex items-center ${clColors.text}`}>
                               +{task.rewardXp} XP
                             </span>
                           </div>
                           <p className="text-slate-500 dark:text-slate-400 text-[10px] line-clamp-2 leading-relaxed">
                             {task.description}
                           </p>
-                          <div className="flex items-center justify-between pt-1 border-t border-indigo-100/50 dark:border-[#2d2553]/35 text-[9px]">
+                          <div className={`flex items-center justify-between pt-1 border-t ${clColors.lightBorder} text-[9px]`}>
                             <span className="text-slate-400 capitalize">{task.type === "dragdrop" ? t.dragDrop : t.essay}</span>
                             {completed ? (
                               <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-0.5">
                                 <CheckCircle2 className="h-3 w-3" /> {t.handedIn}
                               </span>
                             ) : (
-                              <span className="text-indigo-600 dark:text-indigo-400 font-semibold">{t.due}</span>
+                              <span className={`${clColors.text} font-semibold`}>{t.due}</span>
                             )}
                           </div>
                         </div>
@@ -326,32 +347,41 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
                     <h5 className="text-[10px] font-bold text-purple-500 uppercase tracking-wider font-mono">
                       {t.scheduledEvents} ({selectedDayEvents.length})
                     </h5>
-                    {selectedDayEvents.map((evt) => (
-                      <div key={evt.id} className="p-3 bg-purple-50/40 dark:bg-purple-950/20 border border-purple-100 dark:border-[#2d2553]/60 rounded-xl space-y-1 text-left">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">
-                            {evt.title}
-                          </span>
-                          <span className="text-purple-600 dark:text-purple-400 text-[9px] font-mono flex items-center gap-0.5">
-                            <Clock className="h-3 w-3" /> {evt.time}
-                          </span>
+                    {selectedDayEvents.map((evt) => {
+                      const cl = classes?.find(c => c.id === evt.classId);
+                      const clColors = getClassColors(cl?.color);
+                      return (
+                        <div key={evt.id} className={`p-3 ${clColors.bg} border ${clColors.border} rounded-xl space-y-1 text-left`}>
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-800 dark:text-slate-100 text-xs">
+                              {evt.title}
+                            </span>
+                            <span className={`${clColors.text} text-[9px] font-mono flex items-center gap-0.5`}>
+                              <Clock className="h-3 w-3" /> {evt.time}
+                            </span>
+                          </div>
+                          <p className="text-slate-550 dark:text-slate-350 text-[10px] leading-relaxed">
+                            {evt.description}
+                          </p>
                         </div>
-                        <p className="text-slate-500 dark:text-slate-400 text-[10px] leading-relaxed">
-                          {evt.description}
-                        </p>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
             )}
           </div>
 
-          <div className="text-[10px] text-slate-400 dark:text-slate-500 border-t border-slate-100 dark:border-[#241c49]/80 pt-3 mt-4 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-            <span>Assignments indicators</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-purple-500 ml-2" />
-            <span>Events indicators</span>
+          <div className="text-[10px] text-slate-400 dark:text-slate-550 border-t border-slate-100 dark:border-[#241c49]/80 pt-3 mt-4 flex flex-wrap gap-x-4 gap-y-1">
+            {classes?.map(cl => {
+              const clColors = getClassColors(cl.color);
+              return (
+                <div key={cl.id} className="flex items-center gap-1.5">
+                  <span className={`w-1.5 h-1.5 rounded-full ${clColors.bgSolid}`} />
+                  <span className="font-medium text-slate-500 dark:text-slate-400">{cl.name}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
