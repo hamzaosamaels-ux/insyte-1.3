@@ -1,0 +1,8 @@
+{
+  "name": "Insyte",
+  "description": "An interactive, AI-powered learning management and classroom platform with student & teacher dashboards, peer chat, leaderboards, assignment managers, and an intelligent study buddy.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
